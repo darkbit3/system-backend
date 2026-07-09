@@ -38,13 +38,21 @@ const apiEndpoints = [
   { method: 'POST', path: '/dama', description: 'Direct partner callback for balance and game actions' }
 ];
 
-const allowedOrigins = [
+const defaultAllowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
   'http://localhost:5000',
   'https://dama-game-backend.onrender.com',
-  'https://dama-game-6d2b.onrender.com'
+  'https://dama-game-6d2b.onrender.com',
+  'https://system-admin-8dis.onrender.com'
 ];
+
+const envAllowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
+
+const allowedOrigins = [...new Set([...defaultAllowedOrigins, ...envAllowedOrigins])];
 
 // Middleware
 app.use(cors({
