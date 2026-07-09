@@ -59,6 +59,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Token']
 }));
+app.options('*', cors());
 app.use(express.json());
 
 // Routes
@@ -68,6 +69,15 @@ app.use('/api/admin/games', require('./routes/adminRoutes'));
 app.use('/api/scores', require('./routes/scoreRoutes'));
 app.use('/api/game-api', gameApiRoutes);
 app.post('/dama', gameApiRoutes.handleDamaCallback);
+
+// Root health endpoint
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Telegram Games Backend API is running',
+    docs: '/api/health'
+  });
+});
 
 // API overview
 app.get('/api', (req, res) => {
