@@ -286,12 +286,50 @@ router.get('/leaderboard', requireGameToken, (req, res) => {
 // This route is also exposed directly at /dama for partner callback requests.
 // ────────────────────────────────────────────────────────────────────────────
 const handleDamaCallback = (req, res) => {
-  const { action, phone, username, amount } = req.body;
+  const { action, phone, username, amount, gameId, type, humanPlayerId } = req.body;
   const identifier = phone || username;
 
   if (!action) {
     return res.status(400).json({ error: 'action is required' });
   }
+
+  if (action === 'ping') {
+    return res.json({ ok: true, message: 'pong' });
+  }
+
+  if (action === 'owner_fee') {
+    const ownerAmount = Number(amount || 0);
+    const note = [
+      'owner_fee',
+      type || 'unknown',
+      gameId ? `game:${gameId}` : null,
+      humanPlayerId ? `player:${humanPlayerId}` : null
+    ].filter(Boolean).join(' | ');
+
+    return db.run(
+      `INSERT INTO admin_balance_transactions (type, amount, user_id, note) VALUES (?, ?, ?, ?)` ,
+      ['owner_fee', ownerAmount, null, note],
+      (err) => {
+        if (err) {
+          console.error('Failed to record owner fee:', err.message);
+          return res.status(500).json({ error: 'Failed to record owner fee' });
+        }
+
+        db.run(
+          `UPDATE admin_balances SET balance = balance + ?, last_updated = CURRENT_TIMESTAMP WHERE id = 1`,
+          [ownerAmount],
+          (balanceErr) => {
+            if (balanceErr) {
+              console.error('Failed to update owner balance:', balanceErr.message);
+              return res.status(500).json({ error: 'Failed to update owner balance' });
+            }
+            return res.json({ ok: true });
+          }
+        );
+      }
+    );
+  }
+
   if (!identifier) {
     return res.status(400).json({ error: 'phone or username is required' });
   }
