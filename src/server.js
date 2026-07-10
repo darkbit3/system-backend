@@ -41,6 +41,17 @@ const apiEndpoints = [
   { method: 'POST',   path: '/api/game-api/verify',                     description: 'Verify a player' },
   { method: 'POST',   path: '/api/games/start-bet',                     description: 'Start a Dama-style bet' },
   { method: 'POST',   path: '/dama',                                    description: 'Direct partner callback for balance and game actions' },
+  // Bot session & conversation state (replaces local bot.db)
+  { method: 'PUT',    path: '/api/bot/sessions/:telegramId',            description: 'Upsert bot session' },
+  { method: 'GET',    path: '/api/bot/sessions/:telegramId',            description: 'Get bot session' },
+  { method: 'PATCH',  path: '/api/bot/sessions/:telegramId/touch',      description: 'Refresh session last_active' },
+  { method: 'PATCH',  path: '/api/bot/sessions/:telegramId/token',      description: 'Refresh session token' },
+  { method: 'DELETE', path: '/api/bot/sessions/:telegramId',            description: 'Delete bot session' },
+  { method: 'PUT',    path: '/api/bot/states/:chatId',                  description: 'Upsert conversation state' },
+  { method: 'GET',    path: '/api/bot/states/:chatId',                  description: 'Get conversation state' },
+  { method: 'PATCH',  path: '/api/bot/states/:chatId',                  description: 'Patch conversation state data' },
+  { method: 'DELETE', path: '/api/bot/states/:chatId',                  description: 'Delete conversation state' },
+  { method: 'DELETE', path: '/api/bot/states',                          description: 'Purge expired conversation states' },
 ];
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
@@ -109,6 +120,7 @@ app.use('/api/users',        require('./routes/userRoutes'));
 app.use('/api/games',        require('./routes/gameRoutes'));
 app.use('/api/admin/games',  require('./routes/adminRoutes'));
 app.use('/api/scores',       require('./routes/scoreRoutes'));
+app.use('/api/bot',          require('./routes/botRoutes'));
 app.use('/api/game-api',     gameApiRoutes);
 app.post('/dama',            gameApiRoutes.handleDamaCallback);   // ← unchanged webhook contract
 

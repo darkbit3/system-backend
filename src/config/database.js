@@ -307,6 +307,28 @@ const initializeDatabase = () => {
     )
   `);
 
+  // Bot sessions table (replaces better-sqlite3 bot.db sessions table)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS bot_sessions (
+      telegram_id  TEXT    PRIMARY KEY,
+      token        TEXT    NOT NULL,
+      user_id      TEXT    NOT NULL,
+      created_at   INTEGER NOT NULL,
+      last_active  INTEGER NOT NULL,
+      expires_at   INTEGER NOT NULL
+    )
+  `);
+
+  // Bot conversation state table (replaces better-sqlite3 bot.db conversation_state table)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS bot_conversation_states (
+      chat_id    TEXT    PRIMARY KEY,
+      step       TEXT    NOT NULL,
+      data       TEXT    NOT NULL DEFAULT '{}',
+      expires_at INTEGER NOT NULL
+    )
+  `);
+
   // Bet logs table
   db.run(`
     CREATE TABLE IF NOT EXISTS bet_logs (
