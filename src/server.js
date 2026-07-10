@@ -8,7 +8,8 @@ const rateLimit  = require('express-rate-limit');
 const app  = express();
 const PORT = process.env.PORT || 5000;
 
-const gameApiRoutes = require('./routes/gameApiRoutes');
+const gameApiRoutes   = require('./routes/gameApiRoutes');
+const verifyGameToken = require('./middleware/verifyGameToken');
 
 // ── API endpoint registry (unchanged — other services depend on this list) ────
 const apiEndpoints = [
@@ -127,7 +128,7 @@ app.use('/api/admin/games',  require('./routes/adminRoutes'));
 app.use('/api/scores',       require('./routes/scoreRoutes'));
 app.use('/api/bot',          require('./routes/botRoutes'));
 app.use('/api/game-api',     gameApiRoutes);
-app.post('/dama',            gameApiRoutes.handleDamaCallback);   // ← unchanged webhook contract
+app.post('/dama', verifyGameToken, gameApiRoutes.handleDamaCallback);   // ← token-protected webhook
 
 // ── Utility endpoints ─────────────────────────────────────────────────────────
 app.get('/', (req, res) => res.json({

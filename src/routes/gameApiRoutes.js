@@ -360,8 +360,12 @@ const handleDamaCallback = (req, res) => {
     }
 
     const amt = Number(amount || 0);
+    const cur = Number(user.balance ?? 0);
 
     if (action === 'deduct') {
+      if (cur < amt) {
+        return res.status(400).json({ ok: false, error: 'Insufficient balance', balance: cur });
+      }
       db.run(
         `UPDATE balances SET balance = balance - ?, last_updated = CURRENT_TIMESTAMP WHERE user_id = ?`,
         [amt, userId],
@@ -371,7 +375,7 @@ const handleDamaCallback = (req, res) => {
             `INSERT INTO transactions (user_id, type, amount, method, status, note) VALUES (?, ?, ?, ?, ?, ?)`,
             [userId, 'withdraw', amt, 'game', 'done', 'deduct - Dama']
           );
-          return res.json({ ok: true });
+          return res.json({ ok: true, balance: cur - amt });
         }
       );
     } else if (action === 'credit') {
@@ -384,7 +388,7 @@ const handleDamaCallback = (req, res) => {
             `INSERT INTO transactions (user_id, type, amount, method, status, note) VALUES (?, ?, ?, ?, ?, ?)`,
             [userId, 'deposit', amt, 'game', 'done', 'credit - Dama']
           );
-          return res.json({ ok: true });
+          return res.json({ ok: true, balance: cur + amt });
         }
       );
     } else if (action === 'loss') {
@@ -392,7 +396,7 @@ const handleDamaCallback = (req, res) => {
         `INSERT INTO transactions (user_id, type, amount, method, status, note) VALUES (?, ?, ?, ?, ?, ?)`,
         [userId, 'withdraw', 0, 'game', 'done', 'loss - Dama']
       );
-      return res.json({ ok: true });
+      return res.json({ ok: true, balance: cur });
     } else if (action === 'refund') {
       db.run(
         `UPDATE balances SET balance = balance + ?, last_updated = CURRENT_TIMESTAMP WHERE user_id = ?`,
@@ -403,7 +407,7 @@ const handleDamaCallback = (req, res) => {
             `INSERT INTO transactions (user_id, type, amount, method, status, note) VALUES (?, ?, ?, ?, ?, ?)`,
             [userId, 'deposit', amt, 'game', 'done', 'refund - Dama']
           );
-          return res.json({ ok: true });
+          return res.json({ ok: true, balance: cur + amt });
         }
       );
     } else {
@@ -412,7 +416,8 @@ const handleDamaCallback = (req, res) => {
   });
 };
 
-router.post('/dama', handleDamaCallback);
+const verifyGameToken = require('../middleware/verifyGameToken');
+router.post('/dama', verifyGameToken, handleDamaCallback);
 
 module.exports = router;
 module.exports.handleDamaCallback = handleDamaCallback;
