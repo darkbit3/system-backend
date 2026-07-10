@@ -166,6 +166,7 @@ router.delete('/:id',
 
 router.get('/game-tokens',                  verifyTokenMiddleware, ctrl.getTokens);
 router.get('/game-tokens/active/:gameId',   verifyTokenMiddleware, ctrl.getActiveTokenByGame);
+router.get('/game-tokens/launch/:gameId',   verifyTokenMiddleware, ctrl.getLaunchToken);
 router.get('/game-tokens/game/:gameId',     verifyTokenMiddleware, ctrl.getTokensByGame);
 
 router.post('/game-tokens',

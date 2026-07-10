@@ -14,6 +14,7 @@ const transactionModel = require('../models/transactionModel');
 const gameTokenModel   = require('../models/gameTokenModel');
 const balanceService   = require('../services/balanceService');
 const { generateToken } = require('../utils/jwt');
+const { signLaunchToken } = require('../utils/launchToken');
 const { ok, err, parsePagination } = require('../utils/response');
 
 // ── Validation guard ──────────────────────────────────────────────────────────
@@ -423,6 +424,44 @@ const getActiveTokenByGame = (req, res) => {
   });
 };
 
+/**
+ * GET /api/admin/games/game-tokens/launch/:gameId
+ *
+ * Returns the active game token AND a signed 5-minute launch token.
+ * The launch token encodes phone/username/balance so the game URL
+ * never needs those values as plain query params.
+ *
+ * Query params (all optional — include what the caller knows):
+ *   ?phone=...&username=...&balance=...
+ *
+ * Response (new endpoint, does not alter any existing endpoint shape):
+ *   { success: true, token: "GT-...", launch: "<signed-jwt>" }
+ */
+const getLaunchToken = (req, res) => {
+  const { gameId } = req.params;
+  const { phone, username, balance } = req.query;
+
+  gameTokenModel.getActiveByGame(gameId, (dbErr, row) => {
+    if (dbErr) return err(res, 'Database error', 500);
+    if (!row)  return err(res, 'No active token for this game', 404);
+
+    let launch;
+    try {
+      launch = signLaunchToken({
+        phone:    phone    || '',
+        username: username || '',
+        balance:  Number(balance ?? 0),
+        gameId,
+      });
+    } catch (signErr) {
+      console.error('[getLaunchToken] sign error:', signErr.message);
+      return err(res, 'Launch token signing failed — DAMA_LAUNCH_SECRET may not be set', 500);
+    }
+
+    return ok(res, { token: row.token, launch });
+  });
+};
+
 const createToken = (req, res) => {
   if (guard(req, res)) return;
   const { game_id, label, backend_url } = req.body;
@@ -558,7 +597,7 @@ module.exports = {
   // games
   getAllGamesAdmin, getGamesList, createGame, updateGame, deleteGame,
   // tokens
-  getTokens, getTokensByGame, getActiveTokenByGame, createToken, updateToken, deleteToken,
+  getTokens, getTokensByGame, getActiveTokenByGame, getLaunchToken, createToken, updateToken, deleteToken,
   // cashiers
   getCashiers, createCashier, updateCashier, deleteCashier,
   depositToCashier, withdrawFromCashier,
