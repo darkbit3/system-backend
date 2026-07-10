@@ -56,12 +56,17 @@ const apiEndpoints = [
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 const defaultAllowedOrigins = [
+  // Local development
   'http://localhost:3000',
   'http://localhost:5173',
   'http://localhost:5000',
+  // Production — all three deployed services
+  'https://system-backend-jbnd.onrender.com',
+  'https://system-telegram.onrender.com',
+  'https://system-admin-8dis.onrender.com',
+  // Legacy / previous deploy URLs
   'https://dama-game-backend.onrender.com',
   'https://dama-game-6d2b.onrender.com',
-  'https://system-admin-8dis.onrender.com',
 ];
 
 const envAllowedOrigins = (process.env.ALLOWED_ORIGINS || '')
