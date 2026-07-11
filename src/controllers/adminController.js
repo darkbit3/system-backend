@@ -14,6 +14,7 @@ const transactionModel = require('../models/transactionModel');
 const gameTokenModel   = require('../models/gameTokenModel');
 const balanceService   = require('../services/balanceService');
 const { generateToken } = require('../utils/jwt');
+const { signLaunchToken } = require('../utils/launchToken');
 const { ok, err, parsePagination } = require('../utils/response');
 
 // ── Validation guard ──────────────────────────────────────────────────────────
@@ -437,8 +438,22 @@ const getActiveTokenByGame = (req, res) => {
  *   { success: true, token: "GT-...", launch: "<signed-jwt>" }
  */
 const getLaunchToken = (req, res) => {
-  // Launch token functionality disabled (DAMA_LAUNCH_SECRET removed)
-  return err(res, 'Launch token functionality is disabled', 503);
+  const { phone, username, balance } = req.query;
+  const { gameId } = req.params;
+
+  gameTokenModel.getActiveByGame(gameId, (dbErr, row) => {
+    if (dbErr) return err(res, 'Database error', 500);
+    if (!row) return err(res, 'Active game token not found', 404);
+
+    let launch;
+    try {
+      launch = signLaunchToken({ phone, username, balance, gameId });
+    } catch (signErr) {
+      return err(res, signErr.message || 'Failed to sign launch token', 500);
+    }
+
+    return ok(res, { token: row.token, launch });
+  });
 };
 
 const createToken = (req, res) => {

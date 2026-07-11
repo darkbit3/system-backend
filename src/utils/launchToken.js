@@ -1,15 +1,18 @@
-/**
- * launchToken.js
- *
- * Placeholder - launch token functionality has been disabled.
- */
+const jwt = require('jsonwebtoken');
 
-const signLaunchToken = () => {
-  throw new Error('Launch token signing is disabled');
+const signLaunchToken = ({ phone, username, balance, gameId }) => {
+  const secret = process.env.DAMA_LAUNCH_SECRET;
+  if (!secret) throw new Error('DAMA_LAUNCH_SECRET is not configured');
+
+  const payload = { phone, username, balance, gameId };
+  return jwt.sign(payload, secret, { expiresIn: '5m' });
 };
 
-const verifyLaunchToken = () => {
-  throw new Error('Launch token verification is disabled');
+const verifyLaunchToken = (launchToken) => {
+  const secret = process.env.DAMA_LAUNCH_SECRET;
+  if (!secret) throw new Error('DAMA_LAUNCH_SECRET is not configured');
+
+  return jwt.verify(launchToken, secret);
 };
 
 module.exports = { signLaunchToken, verifyLaunchToken };
