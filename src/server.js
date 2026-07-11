@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 5000;
 const gameApiRoutes   = require('./routes/gameApiRoutes');
 const verifyGameToken = require('./middleware/verifyGameToken');
 const { createKeepAliveScheduler } = require('./utils/keepAlive');
-const { verifyLaunchToken } = require('./utils/launchToken');
+// const { verifyLaunchToken } = require('./utils/launchToken'); // disabled
 
 // ── API endpoint registry (unchanged — other services depend on this list) ────
 const apiEndpoints = [
@@ -42,7 +42,6 @@ const apiEndpoints = [
   { method: 'POST',   path: '/api/game-api/player-balance',             description: 'Get player balance for a game' },
   { method: 'POST',   path: '/api/game-api/game-action',                description: 'Process game balance action' },
   { method: 'POST',   path: '/api/game-api/verify',                     description: 'Verify a player' },
-  { method: 'POST',   path: '/api/verify-launch-token',                 description: 'Verify a launch token' },
   { method: 'POST',   path: '/api/games/start-bet',                     description: 'Start a Dama-style bet' },
   { method: 'POST',   path: '/dama',                                    description: 'Direct partner callback for balance and game actions' },
   // Bot session & conversation state (replaces local bot.db)
@@ -125,30 +124,7 @@ app.use('/api/users/login',        authLimiter);
 app.use('/api/admin/games/login',  authLimiter);
 
 // ── Routes ────────────────────────────────────────────────────────────────────
-app.post('/api/verify-launch-token', (req, res) => {
-  const { launch } = req.body || {};
-
-  if (typeof launch !== 'string' || !launch.trim()) {
-    return res.status(401).json({ valid: false, reason: 'launch token is required' });
-  }
-
-  try {
-    const decoded = verifyLaunchToken(launch);
-    return res.status(200).json({
-      valid: true,
-      phone: decoded.phone || '',
-      username: decoded.username || '',
-      balance: decoded.balance ?? 0,
-      gameId: decoded.gameId || '',
-    });
-  } catch (error) {
-    const reason = error.name === 'TokenExpiredError'
-      ? 'launch token expired'
-      : 'invalid launch token';
-
-    return res.status(401).json({ valid: false, reason });
-  }
-});
+// /api/verify-launch-token endpoint disabled (DAMA_LAUNCH_SECRET removed)
 
 app.use('/api/users',        require('./routes/userRoutes'));
 app.use('/api/games',        require('./routes/gameRoutes'));
