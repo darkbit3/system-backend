@@ -10,6 +10,7 @@ const PORT = process.env.PORT || 5000;
 
 const gameApiRoutes   = require('./routes/gameApiRoutes');
 const verifyGameToken = require('./middleware/verifyGameToken');
+const { createKeepAliveScheduler } = require('./utils/keepAlive');
 
 // ── API endpoint registry (unchanged — other services depend on this list) ────
 const apiEndpoints = [
@@ -184,6 +185,18 @@ app.listen(PORT, () => {
   console.log(`   Endpoints: GET /api/endpoints`);
   console.log(`   Register:  POST /api/users/register`);
   console.log(`   Login:     POST /api/users/login`);
+
+  const keepAliveEnabled = process.env.KEEP_ALIVE_ENABLED === 'true';
+  const keepAliveTarget = process.env.KEEP_ALIVE_TARGET;
+  const keepAliveIntervalMs = process.env.KEEP_ALIVE_INTERVAL_MS;
+
+  if (keepAliveEnabled) {
+    createKeepAliveScheduler({
+      enabled: true,
+      targetUrl: keepAliveTarget,
+      intervalMs: keepAliveIntervalMs,
+    });
+  }
 });
 
 module.exports = app;
