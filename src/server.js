@@ -136,8 +136,8 @@ app.post('/api/verify-launch-token', (req, res) => {
 
   resolveLaunchToken(launch, (resolveErr, result) => {
     if (resolveErr) {
-      console.error('[verify-launch-token] verification error', resolveErr.message);
-      return res.status(401).json({ valid: false, reason: resolveErr.message });
+      console.error('[verify-launch-token] verification error', { name: resolveErr?.name, message: resolveErr?.message });
+      return res.status(401).json({ valid: false, reason: resolveErr.message || 'launch token verification failed' });
     }
 
     if (!result?.valid) {

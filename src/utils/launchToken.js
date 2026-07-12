@@ -16,7 +16,15 @@ const signLaunchToken = ({ phone, username, balance, gameId }) => {
 };
 
 const verifyLaunchToken = (launchToken) => {
-  return jwt.verify(launchToken, getLaunchSecret());
+  console.log('[verify] secret length:', (process.env.DAMA_LAUNCH_SECRET || '').length);
+  console.log('[verify] token to verify:', launchToken ? launchToken.slice(0, 20) + '...' : 'undefined');
+
+  try {
+    return jwt.verify(launchToken, getLaunchSecret());
+  } catch (err) {
+    console.error('[verify] jwt error', { name: err?.name, message: err?.message });
+    throw err;
+  }
 };
 
 const resolveLaunchToken = (launchToken, callback) => {
@@ -61,6 +69,7 @@ const resolveLaunchToken = (launchToken, callback) => {
       }
     );
   } catch (error) {
+    console.error('[resolve-launch-token] verification failed', { name: error?.name, message: error?.message });
     callback(error);
   }
 };
