@@ -12,6 +12,8 @@ const db = new sqlite3.Database(dbPath, (err) => {
   }
 });
 
+module.exports = db;
+
 const insertDefaultGames = () => {
   const sampleGames = [
     {
@@ -346,18 +348,25 @@ const initializeDatabase = () => {
     )
   `);
 
-  db.get(`SELECT id FROM games LIMIT 1`, (err, row) => {
-    if (!err && row) {
-      db.run(`
-        INSERT OR IGNORE INTO game_tokens (game_id, token, label, backend_url, status)
-        VALUES (?, ?, ?, ?, ?)
-      `, [row.id, 'demo-token', 'Demo Dama Token', null, 'active'], (tokenErr) => {
-        if (tokenErr) {
-          console.error('Error creating demo game token:', tokenErr.message);
+  require('../models/gameTokenModel').ensureDemoToken((tokenErr, result) => {
+    if (tokenErr) {
+      console.error('Error ensuring demo game token:', tokenErr.message);
+      return;
+    }
+
+    if (result?.created) {
+      console.log('[bootstrap] created demo token', { token: result.token, gameId: result.row?.id });
+      gameTokenModel.syncTokenToDamaBackend(result.token, (syncErr, syncResult) => {
+        if (syncErr) {
+          console.error('Error syncing demo token to dama-backend:', syncErr.message);
         } else {
-          console.log('Inserted demo game token');
+          console.log('[bootstrap] dama-backend sync', syncResult);
         }
       });
+    } else if (result?.reused) {
+      console.log('[bootstrap] reused existing demo token', { token: result.token });
+    } else {
+      console.log('[bootstrap] no demo token created', result);
     }
   });
 
@@ -365,4 +374,3 @@ const initializeDatabase = () => {
   console.log('Database tables initialized');
 };
 
-module.exports = db;

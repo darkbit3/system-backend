@@ -1,5 +1,6 @@
 const db     = require('../config/database');
 const crypto = require('crypto');
+const axios  = require('axios');
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 
@@ -68,6 +69,48 @@ const create = ({ game_id, label, backend_url }, callback) => {
   );
 };
 
+const ensureDemoToken = (callback) => {
+  db.get(`SELECT id FROM games LIMIT 1`, (err, gameRow) => {
+    if (err) return callback(err);
+    if (!gameRow) return callback(null, { created: false, reused: false, token: null, reason: 'no-games' });
+
+    db.get(
+      `SELECT id, token, status, backend_url FROM game_tokens WHERE game_id = ? AND status = 'active' ORDER BY created_at DESC LIMIT 1`,
+      [gameRow.id],
+      (lookupErr, existingRow) => {
+        if (lookupErr) return callback(lookupErr);
+        if (existingRow) {
+          console.log('[game-token] reused active token', { token: existingRow.token, gameId: gameRow.id, status: existingRow.status });
+          return callback(null, { created: false, reused: true, token: existingRow.token, row: existingRow });
+        }
+
+        const token = 'GT-' + crypto.randomBytes(16).toString('hex').toUpperCase();
+        db.run(
+          `INSERT INTO game_tokens (game_id, token, label, backend_url, status) VALUES (?, ?, ?, ?, ?)`,
+          [gameRow.id, token, 'Demo Dama Token', null, 'active'],
+          function (insertErr) {
+            if (insertErr) return callback(insertErr);
+            console.log('[game-token] created new token', { token, gameId: gameRow.id });
+            callback(null, { created: true, reused: false, token, row: { id: this.lastID, token } });
+          }
+        );
+      }
+    );
+  });
+};
+
+const syncTokenToDamaBackend = (token, callback) => {
+  const backendUrl = process.env.DAMA_BACKEND_URL || process.env.DAMA_BACKEND || null;
+  if (!backendUrl) {
+    return callback(null, { synced: false, reason: 'no-backend-url' });
+  }
+
+  const payload = { action: 'register_token', token, source: 'system-backend' };
+  axios.post(`${backendUrl}/dama`, payload, { timeout: 8000 })
+    .then((response) => callback(null, { synced: true, response: response.data }))
+    .catch((err) => callback(null, { synced: false, reason: err.message }));
+};
+
 const update = (id, { label, status, token, backend_url }, callback) => {
   if (token) {
     // Check uniqueness first
@@ -97,4 +140,15 @@ const remove = (id, callback) => {
   db.run(`DELETE FROM game_tokens WHERE id = ?`, [id], function (err) { callback(err, this.changes); });
 };
 
-module.exports = { getAll, count, getByGame, getActiveByGame, findByToken, create, update, remove };
+module.exports = {
+  getAll,
+  count,
+  getByGame,
+  getActiveByGame,
+  findByToken,
+  create,
+  ensureDemoToken,
+  syncTokenToDamaBackend,
+  update,
+  remove,
+};
