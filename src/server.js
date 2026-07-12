@@ -12,6 +12,7 @@ const PORT = process.env.PORT || 5000;
 app.set('trust proxy', 1);
 
 const gameApiRoutes   = require('./routes/gameApiRoutes');
+const xoRoutes        = require('./routes/xo');
 const verifyGameToken = require('./middleware/verifyGameToken');
 const { createKeepAliveScheduler } = require('./utils/keepAlive');
 const { resolveLaunchToken } = require('./utils/launchToken');
@@ -47,6 +48,10 @@ const apiEndpoints = [
   { method: 'POST',   path: '/api/game-api/verify',                     description: 'Verify a player' },
   { method: 'POST',   path: '/api/verify-launch-token',                 description: 'Verify a launch token' },
   { method: 'POST',   path: '/api/games/start-bet',                     description: 'Start a Dama-style bet' },
+  { method: 'POST',   path: '/api/xo/player-balance',                  description: 'Get player balance for XO game' },
+  { method: 'POST',   path: '/api/xo/game-action',                     description: 'Process XO game balance action' },
+  { method: 'POST',   path: '/api/xo/verify',                          description: 'Verify an XO player' },
+  { method: 'POST',   path: '/xo',                                     description: 'Direct XO callback for balance and game actions' },
   { method: 'POST',   path: '/dama',                                    description: 'Direct partner callback for balance and game actions' },
   // Bot session & conversation state (replaces local bot.db)
   { method: 'PUT',    path: '/api/bot/sessions/:telegramId',            description: 'Upsert bot session' },
@@ -172,6 +177,8 @@ app.use('/api/admin/games',  require('./routes/adminRoutes'));
 app.use('/api/scores',       require('./routes/scoreRoutes'));
 app.use('/api/bot',          require('./routes/botRoutes'));
 app.use('/api/game-api',     gameApiRoutes);
+app.use('/api/xo',           xoRoutes);
+app.post('/xo', verifyGameToken, xoRoutes.handleXoCallback);   // ← token-protected XO webhook
 app.post('/dama', verifyGameToken, gameApiRoutes.handleDamaCallback);   // ← token-protected webhook
 
 // ── Utility endpoints ─────────────────────────────────────────────────────────
