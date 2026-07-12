@@ -218,6 +218,15 @@ app.use((error, req, res, next) => {
 
 // 404 handler
 app.use((req, res) => {
+  console.warn('[unmatched-route]', {
+    method: req.method,
+    path: req.originalUrl,
+    ip: req.ip,
+    headers: {
+      'x-forwarded-for': req.headers['x-forwarded-for'],
+      'user-agent': req.headers['user-agent'],
+    },
+  });
   res.status(404).json({ success: false, error: 'Route not found' });
 });
 

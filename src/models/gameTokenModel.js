@@ -105,12 +105,18 @@ const syncTokenToDamaBackend = (token, callback) => {
     return callback(null, { synced: false, reason: 'no-backend-url' });
   }
 
+  const enforceExplicitSync = process.env.ENFORCE_DAMA_SYNC === 'true';
+  if (!enforceExplicitSync) {
+    console.info('[syncTokenToDamaBackend] sync disabled by config; skipping');
+    return callback(null, { synced: false, reason: 'sync-disabled-by-config' });
+  }
+
   // Avoid accidentally POSTing to our own server (causes self-call loops)
   try {
     const parsed = new URL(backendUrl);
-    const selfHost = (process.env.SELF_HOSTNAME) || `localhost:${process.env.PORT || 5000}`;
-    if (parsed.host === selfHost) {
-      console.warn('[syncTokenToDamaBackend] backendUrl resolves to self, skipping sync');
+    const selfHost = process.env.SELF_HOSTNAME || `localhost:${process.env.PORT || 5000}`;
+    if (parsed.host === selfHost || parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
+      console.warn('[syncTokenToDamaBackend] backendUrl resolves to this service, skipping sync');
       return callback(null, { synced: false, reason: 'backend-is-self' });
     }
   } catch (e) {
