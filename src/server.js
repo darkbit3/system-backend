@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 5000;
 const gameApiRoutes   = require('./routes/gameApiRoutes');
 const verifyGameToken = require('./middleware/verifyGameToken');
 const { createKeepAliveScheduler } = require('./utils/keepAlive');
-const { verifyLaunchToken } = require('./utils/launchToken');
+const { resolveLaunchToken } = require('./utils/launchToken');
 
 // ── API endpoint registry (unchanged — other services depend on this list) ────
 const apiEndpoints = [
@@ -131,13 +131,24 @@ app.post('/api/verify-launch-token', (req, res) => {
     return res.status(400).json({ valid: false, reason: 'launch token is required' });
   }
 
-  try {
-    const decoded = verifyLaunchToken(launch);
-    const { phone, username, balance, gameId } = decoded;
-    return res.status(200).json({ valid: true, phone, username, balance, gameId });
-  } catch (verifyErr) {
-    return res.status(401).json({ valid: false, reason: verifyErr.message });
-  }
+  resolveLaunchToken(launch, (resolveErr, result) => {
+    if (resolveErr) {
+      return res.status(401).json({ valid: false, reason: resolveErr.message });
+    }
+
+    if (!result?.valid) {
+      return res.status(404).json({ valid: false, reason: result?.reason || 'launch payload could not be resolved' });
+    }
+
+    return res.status(200).json({
+      valid: true,
+      phone: result.user.phone,
+      username: result.user.username,
+      balance: result.user.balance,
+      gameId: result.payload.gameId,
+      user: result.user,
+    });
+  });
 });
 
 app.use('/api/users',        require('./routes/userRoutes'));
