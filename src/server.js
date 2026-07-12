@@ -8,6 +8,9 @@ const rateLimit  = require('express-rate-limit');
 const app  = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust first proxy hop (app sits behind one proxy)
+app.set('trust proxy', 1);
+
 const gameApiRoutes   = require('./routes/gameApiRoutes');
 const verifyGameToken = require('./middleware/verifyGameToken');
 const { createKeepAliveScheduler } = require('./utils/keepAlive');

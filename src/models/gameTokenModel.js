@@ -105,8 +105,20 @@ const syncTokenToDamaBackend = (token, callback) => {
     return callback(null, { synced: false, reason: 'no-backend-url' });
   }
 
+  // Avoid accidentally POSTing to our own server (causes self-call loops)
+  try {
+    const parsed = new URL(backendUrl);
+    const selfHost = (process.env.SELF_HOSTNAME) || `localhost:${process.env.PORT || 5000}`;
+    if (parsed.host === selfHost) {
+      console.warn('[syncTokenToDamaBackend] backendUrl resolves to self, skipping sync');
+      return callback(null, { synced: false, reason: 'backend-is-self' });
+    }
+  } catch (e) {
+    // If URL parsing fails, proceed — runtime may provide a non-URL value
+  }
+
   const payload = { action: 'register_token', token, source: 'system-backend' };
-  axios.post(`${backendUrl}/dama`, payload, { timeout: 8000 })
+  axios.post(`${backendUrl.replace(/\/$/, '')}/dama`, payload, { timeout: 8000 })
     .then((response) => callback(null, { synced: true, response: response.data }))
     .catch((err) => callback(null, { synced: false, reason: err.message }));
 };

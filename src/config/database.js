@@ -348,7 +348,9 @@ const initializeDatabase = () => {
     )
   `);
 
-  require('../models/gameTokenModel').ensureDemoToken((tokenErr, result) => {
+  const gameTokenModel = require('../models/gameTokenModel');
+
+  gameTokenModel.ensureDemoToken((tokenErr, result) => {
     if (tokenErr) {
       console.error('Error ensuring demo game token:', tokenErr.message);
       return;
