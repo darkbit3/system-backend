@@ -127,18 +127,30 @@ app.use('/api/admin/games/login',  authLimiter);
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.post('/api/verify-launch-token', (req, res) => {
   const { launch } = req.body;
+  console.log('[verify-launch-token] request', { method: req.method, body: req.body });
+
   if (!launch) {
-    return res.status(400).json({ valid: false, reason: 'launch token is required' });
+    console.warn('[verify-launch-token] missing launch token');
+    return res.status(401).json({ valid: false, reason: 'launch token is required' });
   }
 
   resolveLaunchToken(launch, (resolveErr, result) => {
     if (resolveErr) {
+      console.error('[verify-launch-token] verification error', resolveErr.message);
       return res.status(401).json({ valid: false, reason: resolveErr.message });
     }
 
     if (!result?.valid) {
-      return res.status(404).json({ valid: false, reason: result?.reason || 'launch payload could not be resolved' });
+      console.warn('[verify-launch-token] unresolved payload', result?.reason);
+      return res.status(401).json({ valid: false, reason: result?.reason || 'launch payload could not be resolved' });
     }
+
+    console.log('[verify-launch-token] success', {
+      phone: result.user.phone,
+      username: result.user.username,
+      balance: result.user.balance,
+      gameId: result.payload.gameId,
+    });
 
     return res.status(200).json({
       valid: true,

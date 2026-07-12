@@ -441,14 +441,26 @@ const getLaunchToken = (req, res) => {
   const { phone, username, balance } = req.query;
   const { gameId } = req.params;
 
+  console.log('[launch-token] request', { gameId, phone, username, balance });
+
   gameTokenModel.getActiveByGame(gameId, (dbErr, row) => {
-    if (dbErr) return err(res, 'Database error', 500);
-    if (!row) return err(res, 'Active game token not found', 404);
+    if (dbErr) {
+      console.error('[launch-token] db error', dbErr.message);
+      return err(res, 'Database error', 500);
+    }
+    if (!row) {
+      console.error('[launch-token] no active token', { gameId });
+      return err(res, 'Active game token not found', 404);
+    }
 
     let launch;
     try {
-      launch = signLaunchToken({ phone, username, balance, gameId });
+      const signedPayload = { phone, username, balance, gameId };
+      console.log('[launch-token] signing payload', signedPayload);
+      launch = signLaunchToken(signedPayload);
+      console.log('[launch-token] response', { success: true, token: row.token, launch });
     } catch (signErr) {
+      console.error('[launch-token] signing error', signErr.message);
       return err(res, signErr.message || 'Failed to sign launch token', 500);
     }
 
