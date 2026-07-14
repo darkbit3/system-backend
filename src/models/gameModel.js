@@ -39,8 +39,14 @@ const createGame = ({ name, description, game_url, mini_app_url, min_players, ma
 
 const updateGame = (id, { name, game_url, mini_app_url, description, status }, callback) => {
   db.run(
-    `UPDATE games SET name = ?, game_url = ?, mini_app_url = ?, description = ?, status = ? WHERE id = ?`,
-    [name, game_url, mini_app_url || null, description || null, status, id],
+    `UPDATE games
+     SET name = COALESCE(?, name),
+         game_url = COALESCE(?, game_url),
+         mini_app_url = COALESCE(?, mini_app_url),
+         description = COALESCE(?, description),
+         status = COALESCE(?, status)
+     WHERE id = ?`,
+    [name ?? null, game_url ?? null, mini_app_url ?? null, description ?? null, status ?? null, id],
     function (err) { callback(err, this.changes); }
   );
 };
