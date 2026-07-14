@@ -1,5 +1,8 @@
 node_modules/
 
 *.log
+*.db
+*.sqlite
+*.sqlite3
 dist/
 build/

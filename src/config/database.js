@@ -1,20 +1,27 @@
 const sqlite3 = require('sqlite3').verbose();
+const fs = require('fs');
 const path = require('path');
 
-const dbPath = path.resolve(__dirname, '..', '..', 'database.db');
+const dbPath = process.env.DB_PATH
+  ? path.resolve(process.env.DB_PATH)
+  : path.resolve(__dirname, '..', '..', 'database.db');
+
+if (!fs.existsSync(path.dirname(dbPath))) {
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+}
 
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Error opening database:', err);
   } else {
-    console.log('Connected to SQLite database at:', dbPath);
+    console.log('[db] using database file at:', dbPath, process.env.DB_PATH ? '(persistent)' : '(EPHEMERAL — will reset on restart!)');
     initializeDatabase();
   }
 });
 
 module.exports = db;
 
-const insertDefaultGames = () => {
+const insertDefaultGames = (callback = () => {}) => {
   const sampleGames = [
     {
       name: 'Dama',
@@ -69,10 +76,12 @@ const insertDefaultGames = () => {
   db.get(`SELECT COUNT(*) AS count FROM games`, (err, row) => {
     if (err) {
       console.error('Error checking games table:', err.message);
+      callback(err);
       return;
     }
 
     if (row.count > 0) {
+      callback(null, { skipped: true });
       return;
     }
 
@@ -84,14 +93,36 @@ const insertDefaultGames = () => {
         (insertErr) => {
           if (insertErr) {
             console.error(`Error inserting default game ${game.name}:`, insertErr.message);
+            callback(insertErr);
           }
         }
       );
     });
 
     console.log('Inserted default games into database');
+    callback(null, { inserted: true });
   });
 };
+
+const seedDefaultGamesIfEmpty = (callback = () => {}) => {
+  db.get('SELECT COUNT(*) AS count FROM games', (err, row) => {
+    if (err) {
+      console.error('Error checking games table before seeding:', err.message);
+      callback(err);
+      return;
+    }
+
+    if (row && row.count > 0) {
+      console.log('[db] skipping default games seed because games table already has data');
+      callback(null, { skipped: true });
+      return;
+    }
+
+    insertDefaultGames(callback);
+  });
+};
+
+module.exports.seedDefaultGamesIfEmpty = seedDefaultGamesIfEmpty;
 
 const ensureGamesSchema = () => {
   db.run(`
@@ -124,10 +155,10 @@ const ensureGamesSchema = () => {
           if (alterErr) {
             console.error('Error adding mini_app_url column:', alterErr.message);
           }
-          insertDefaultGames();
+          seedDefaultGamesIfEmpty();
         });
       } else {
-        insertDefaultGames();
+        seedDefaultGamesIfEmpty();
       }
     });
   });
@@ -372,7 +403,7 @@ const initializeDatabase = () => {
     }
   });
 
-  insertDefaultGames();
+  seedDefaultGamesIfEmpty();
   console.log('Database tables initialized');
 };
 
